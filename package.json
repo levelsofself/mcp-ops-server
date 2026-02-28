@@ -1,0 +1,25 @@
+{
+  "name": "palyan-ai-ops-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for Palyan AI Operations - multi-agent business platform with 12 specialized AI agents",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai-operations",
+    "multi-agent",
+    "real-estate",
+    "legal",
+    "translation",
+    "business"
+  ],
+  "author": "Arthur Palyan <artpalyan@levelsofself.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/levelsofself/mcp-ops-server"
+  }
+}
