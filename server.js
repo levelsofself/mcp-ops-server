@@ -4,31 +4,49 @@ const crypto = require('crypto');
 
 const PORT = 3472;
 const MCP_VERSION = '2024-11-05';
-const SERVER_INFO = { name: 'palyan-ai-ops', version: '1.0.0' };
+const SERVER_INFO = { name: 'palyan-ai-ops', version: '2.0.0' };
 
-// API key auth (optional - can run open for directory review)
+// API key auth - REQUIRED in v2 (no open access)
 const API_KEYS = new Set();
 try {
   const keys = fs.readFileSync('/root/family-data/mcp-api-keys.json', 'utf8');
   JSON.parse(keys).forEach(k => API_KEYS.add(k));
-} catch(e) { /* no keys file = open access */ }
+} catch(e) {
+  console.log('[MCP Ops v2] WARNING: No API keys file found at /root/family-data/mcp-api-keys.json');
+  console.log('[MCP Ops v2] Server will reject all requests until keys are configured.');
+}
 
-// Family member data
-const FAMILY = {
-  tamara: { name: 'Tamara', role: 'Operations Manager', specialty: 'Business ops, pipeline management, team coordination, results tracking' },
-  harout: { name: 'Harout', role: 'Real Estate Specialist', specialty: 'Los Angeles County real estate, property analysis, neighborhood insights, market trends' },
-  aram: { name: 'Aram', role: 'Legal Counsel', specialty: 'Business law, contract review, compliance, government contracting, certifications' },
-  roman: { name: 'Roman', role: 'Press & Content', specialty: 'Press releases, articles, social media content, PR strategy, media outreach' },
-  spartak: { name: 'Spartak', role: 'Global Communicator', specialty: 'Translation (EN/ES/NL/HY/RU), cultural adaptation, international outreach' },
-  kris: { name: 'Kris', role: 'Research Specialist', specialty: 'Lead enrichment, market research, competitive analysis, data gathering' },
-  nick: { name: 'Nick', role: 'Trainer', specialty: 'Personal development training, coaching programs, workshop facilitation' },
-  harry: { name: 'Harry', role: 'Book Specialist', specialty: 'Book writing, editing, publishing guidance, content structuring' },
-  lou: { name: 'Lou', role: 'Content Creator', specialty: 'Long-form content, storytelling, brand narrative, educational materials' },
-  lily: { name: 'Lily', role: 'Self-Awareness Coach', specialty: 'Self-awareness coaching, scenario play, exercises, emotional intelligence' },
-  lady: { name: 'Lady', role: 'Email Outreach', specialty: 'Email campaigns, follow-up sequences, lead nurturing, CRM management' }
+function validateApiKey(req) {
+  // Health check is always open
+  const url = new URL(req.url, `http://localhost:${PORT}`);
+  if (url.pathname === '/health') return true;
+
+  // If no keys are configured, deny all access (secure by default)
+  if (API_KEYS.size === 0) return false;
+
+  const authHeader = req.headers['authorization'];
+  if (!authHeader) return false;
+
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  return API_KEYS.has(token);
+}
+
+// AI Specialist team - customer-facing (no internal names or roles)
+const SPECIALISTS = {
+  operations: { title: 'Operations AI', specialty: 'Business ops, pipeline management, team coordination, results tracking' },
+  realEstate: { title: 'LA Real Estate AI', specialty: 'Los Angeles County real estate, property analysis, neighborhood insights, market trends' },
+  legal: { title: 'Legal AI', specialty: 'Business law, contract review, compliance, government contracting, certifications' },
+  press: { title: 'Press & Content AI', specialty: 'Press releases, articles, social media content, PR strategy, media outreach' },
+  translation: { title: 'Translation AI', specialty: 'Translation (EN/ES/NL/HY/RU/KO), cultural adaptation, international outreach' },
+  research: { title: 'Research AI', specialty: 'Lead enrichment, market research, competitive analysis, data gathering' },
+  training: { title: 'Training AI', specialty: 'Personal development training, coaching programs, workshop facilitation' },
+  books: { title: 'Publishing AI', specialty: 'Book writing, editing, publishing guidance, content structuring' },
+  content: { title: 'Content AI', specialty: 'Long-form content, storytelling, brand narrative, educational materials' },
+  coaching: { title: 'Self-Awareness Coach AI', specialty: 'Self-awareness coaching, scenario play, exercises, emotional intelligence' },
+  outreach: { title: 'Outreach AI', specialty: 'Email campaigns, follow-up sequences, lead nurturing, CRM management' }
 };
 
-// LA neighborhoods data
+// LA neighborhoods data - this IS the service (keep full data)
 const LA_NEIGHBORHOODS = {
   'Santa Clarita/Valencia': { medianPrice: '$650K-$750K', vibe: 'Family-friendly suburbs, good schools, safe', commute: '35-45min to DTLA' },
   'Burbank': { medianPrice: '$850K-$1.1M', vibe: 'Entertainment industry hub, walkable downtown', commute: '15-25min to DTLA' },
@@ -44,15 +62,7 @@ const LA_NEIGHBORHOODS = {
   'Inglewood': { medianPrice: '$600K-$750K', vibe: 'SoFi Stadium area, revitalizing', commute: '20-30min to DTLA' }
 };
 
-// Business certifications
-const CERTIFICATIONS = {
-  'CA Small Business (Micro)': { id: '2050529', status: 'Approved', validThrough: '02/29/2028', platform: 'Cal eProcure' },
-  'SAM.gov': { uei: 'Q82DA4R75YC3', status: 'Active', cagePending: true },
-  'Cal eProcure': { bidderId: 'BID0127306', username: 'LevelsofSelf', status: 'Active' },
-  'LA County VSS': { vendorCode: '229877', status: 'Active', lsbePending: true }
-};
-
-// NAICS codes
+// Public NAICS codes (government standard - fine to expose)
 const NAICS = [
   { code: '541511', description: 'Custom Computer Programming Services', primary: false },
   { code: '541512', description: 'Computer Systems Design Services', primary: true },
@@ -66,6 +76,14 @@ const LANGUAGES = {
   en: 'English', es: 'Spanish', nl: 'Dutch', hy: 'Armenian', ru: 'Russian', ko: 'Korean'
 };
 
+// Certification categories (no IDs, no registration numbers, no usernames)
+const CERTIFICATION_CATEGORIES = [
+  { name: 'California Small Business (Micro)', status: 'Approved', type: 'State' },
+  { name: 'Federal Registration (SAM.gov)', status: 'Active', type: 'Federal' },
+  { name: 'State Procurement (Cal eProcure)', status: 'Active', type: 'State' },
+  { name: 'LA County Vendor Registration', status: 'Active', type: 'County' }
+];
+
 // Tool definitions
 const TOOLS = [
   {
@@ -77,7 +95,7 @@ const TOOLS = [
       idempotentHint: true,
       openWorldHint: false
     },
-    description: 'Get Los Angeles real estate market insights, neighborhood analysis, and property recommendations. Powered by Harout, LA market specialist with deep local knowledge.',
+    description: 'Get Los Angeles real estate market insights, neighborhood analysis, and property recommendations from our dedicated LA market specialist.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -97,7 +115,7 @@ const TOOLS = [
       idempotentHint: true,
       openWorldHint: false
     },
-    description: 'Get business legal guidance including contract review insights, compliance information, government contracting requirements, and certification guidance. Powered by Aram, in-house AI counsel.',
+    description: 'Get business legal guidance including contract review insights, compliance information, government contracting requirements, and certification guidance.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -116,7 +134,7 @@ const TOOLS = [
       idempotentHint: true,
       openWorldHint: false
     },
-    description: 'Translate content between supported languages with cultural adaptation. Powered by Spartak, global communicator fluent in 6 languages.',
+    description: 'Translate content between 6 supported languages with cultural adaptation.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -137,7 +155,7 @@ const TOOLS = [
       idempotentHint: true,
       openWorldHint: false
     },
-    description: 'Deep research on any topic including market analysis, lead enrichment, competitive intelligence, and data gathering. Powered by Kris, research specialist.',
+    description: 'Deep research on any topic including market analysis, lead enrichment, competitive intelligence, and data gathering.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -157,11 +175,11 @@ const TOOLS = [
       idempotentHint: true,
       openWorldHint: false
     },
-    description: 'Get business operations status including pipeline metrics, team activity, certifications, and active processes. Powered by Tamara, operations manager.',
+    description: 'Get business operations status including service offerings, certifications overview, team capabilities, and company metrics.',
     inputSchema: {
       type: 'object',
       properties: {
-        topic: { type: 'string', enum: ['pipeline', 'certifications', 'team_status', 'metrics', 'overview'], description: 'Operations area to query' }
+        topic: { type: 'string', enum: ['services', 'certifications', 'team_capabilities', 'metrics', 'overview'], description: 'Operations area to query' }
       },
       required: ['topic']
     }
@@ -175,7 +193,7 @@ const TOOLS = [
       idempotentHint: true,
       openWorldHint: false
     },
-    description: 'Create professional content including press releases, articles, social media posts, and marketing materials. Powered by Roman, press & content specialist.',
+    description: 'Create professional content including press releases, articles, social media posts, and marketing materials.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -196,7 +214,7 @@ const TOOLS = [
       idempotentHint: true,
       openWorldHint: false
     },
-    description: 'Get personal development training programs, workshop outlines, and coaching frameworks. Powered by Nick, certified trainer.',
+    description: 'Get personal development training programs, workshop outlines, and coaching frameworks.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -208,29 +226,29 @@ const TOOLS = [
     }
   },
   {
-    name: 'get_family_info',
+    name: 'get_platform_info',
     annotations: {
-      title: 'Get Family System Info',
+      title: 'Get Platform Info',
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true,
       openWorldHint: false
     },
-    description: 'Get information about the Palyan AI family system - team members, capabilities, architecture, and how it works.',
+    description: 'Get information about the Palyan AI platform - capabilities, service areas, and how to engage.',
     inputSchema: {
       type: 'object',
       properties: {
-        topic: { type: 'string', enum: ['team', 'capabilities', 'architecture', 'certifications', 'naics', 'contact'], description: 'What to learn about' }
+        topic: { type: 'string', enum: ['capabilities', 'certifications', 'naics', 'contact', 'languages'], description: 'What to learn about' }
       },
       required: ['topic']
     }
   }
 ];
 
-// Resources
+// Resources (sanitized - no cert IDs in read content)
 const RESOURCES = [
-  { uri: 'palyan://family/overview', name: 'Family AI Overview', description: 'Overview of the Palyan AI family system', mimeType: 'text/plain' },
-  { uri: 'palyan://business/certifications', name: 'Business Certifications', description: 'Active business certifications and registrations', mimeType: 'text/plain' },
+  { uri: 'palyan://platform/overview', name: 'Platform Overview', description: 'Overview of the Palyan AI platform and services', mimeType: 'text/plain' },
+  { uri: 'palyan://business/certifications', name: 'Business Certifications', description: 'Active business certification categories', mimeType: 'text/plain' },
   { uri: 'palyan://real-estate/neighborhoods', name: 'LA Neighborhoods Guide', description: 'Los Angeles neighborhood guide with market data', mimeType: 'text/plain' },
   { uri: 'palyan://business/capabilities', name: 'Capability Statement', description: 'Business capabilities, NAICS codes, and service areas', mimeType: 'text/plain' }
 ];
@@ -239,7 +257,7 @@ const RESOURCES = [
 function handleToolCall(name, args) {
   switch (name) {
     case 'get_real_estate_insights': {
-      const result = { specialist: 'Harout', role: 'LA Real Estate Specialist' };
+      const result = { specialist: 'LA Real Estate AI' };
       if (args.neighborhood && LA_NEIGHBORHOODS[args.neighborhood]) {
         result.neighborhood = { name: args.neighborhood, ...LA_NEIGHBORHOODS[args.neighborhood] };
       } else if (args.budget) {
@@ -254,84 +272,101 @@ function handleToolCall(name, args) {
       } else {
         result.neighborhoods = LA_NEIGHBORHOODS;
       }
-      result.note = 'For detailed property searches and personalized recommendations, contact Harout via the Levels of Self platform.';
-      result.contactWhatsApp = '+1 (818) 439-9770';
+      result.note = 'For detailed property searches and personalized recommendations, book a consultation.';
+      result.bookingUrl = 'https://calendly.com/levelsofself/zoom';
       return result;
     }
 
     case 'get_legal_guidance': {
-      return {
-        specialist: 'Aram', role: 'In-House AI Counsel',
-        topic: args.topic, area: args.area || 'general',
+      const result = {
+        specialist: 'Legal AI',
+        topic: args.topic,
+        area: args.area || 'general',
         disclaimer: 'This is AI-generated legal information, not legal advice. Consult a licensed attorney for specific legal matters.',
-        certifications: args.area === 'certifications' || args.area === 'government' ? CERTIFICATIONS : undefined,
-        naics: args.area === 'government' ? NAICS : undefined,
         note: 'For detailed legal guidance, book a consultation: https://calendly.com/levelsofself/zoom'
       };
+      if (args.area === 'certifications' || args.area === 'government') {
+        result.certifications = CERTIFICATION_CATEGORIES;
+        result.naics = NAICS;
+      }
+      return result;
     }
 
     case 'translate_content': {
       return {
-        specialist: 'Spartak', role: 'Global Communicator',
+        specialist: 'Translation AI',
         from: LANGUAGES[args.from_language || 'en'],
         to: LANGUAGES[args.to_language],
         context: args.context || 'business',
         textLength: args.text.length,
         supportedLanguages: LANGUAGES,
-        note: 'Full translation processing available through the Palyan AI platform. This tool provides translation framework and language support information.'
+        note: 'Full translation processing available through the Palyan AI platform.'
       };
     }
 
     case 'research_topic': {
       return {
-        specialist: 'Kris', role: 'Research Specialist',
+        specialist: 'Research AI',
         query: args.query,
         type: args.type || 'general',
         depth: args.depth || 'standard',
         capabilities: ['Market research', 'Lead enrichment', 'Competitive analysis', 'Government opportunity scanning', 'Job market analysis'],
-        activePipeline: { leads: 946, emailsSent: 437, replies: 88, callsBooked: 17, govOpps: 399 }
+        note: 'Research requests are queued and processed. For urgent needs, book a consultation: https://calendly.com/levelsofself/zoom'
       };
     }
 
     case 'get_business_ops': {
       switch (args.topic) {
-        case 'pipeline':
-          return { leads: 946, emailsSent: 437, replies: 88, callsBooked: 17, lifetimeRevenue: '$1,400', govOpportunities: 399, highMatchGov: 13, jobOpportunities: '71K+' };
+        case 'services':
+          return {
+            services: [
+              'AI Consulting & Implementation',
+              'Custom Software Development',
+              'Personal Development Training',
+              'Real Estate Advisory (Los Angeles)',
+              'Legal Guidance (Business)',
+              'Multi-language Translation (6 languages)',
+              'Market Research & Competitive Analysis',
+              'Professional Content Creation',
+              'Email Outreach & Lead Nurturing'
+            ]
+          };
         case 'certifications':
-          return CERTIFICATIONS;
-        case 'team_status':
-          return { totalMembers: 12, active: Object.values(FAMILY).map(f => ({ name: f.name, role: f.role })) };
+          return { certifications: CERTIFICATION_CATEGORIES };
+        case 'team_capabilities':
+          return {
+            totalSpecialists: Object.keys(SPECIALISTS).length,
+            specialists: Object.values(SPECIALISTS).map(s => ({ title: s.title, specialty: s.specialty }))
+          };
         case 'metrics':
           return { gamePlayers: '25,000+', countries: 175, scenarios: 6854, pressFeatures: 16, coaches: 4 };
         case 'overview':
           return {
-            business: 'Levels of Self / Arthur Palyan',
-            type: 'Sole Proprietorship (DBA)',
-            location: 'Valencia, CA 91355',
-            certifications: Object.keys(CERTIFICATIONS),
-            team: Object.values(FAMILY).length + ' AI specialists',
-            pipeline: { leads: 946, revenue: '$1,400' }
+            business: 'Levels of Self - Arthur Palyan',
+            type: 'AI-Powered Business Services',
+            certifications: CERTIFICATION_CATEGORIES.map(c => c.name),
+            specialists: Object.keys(SPECIALISTS).length + ' AI specialists',
+            services: ['AI Consulting', 'Software Development', 'Training', 'Real Estate', 'Legal', 'Translation', 'Research', 'Content']
           };
         default:
-          return { error: 'Unknown topic', available: ['pipeline', 'certifications', 'team_status', 'metrics', 'overview'] };
+          return { error: 'Unknown topic', available: ['services', 'certifications', 'team_capabilities', 'metrics', 'overview'] };
       }
     }
 
     case 'create_content': {
       return {
-        specialist: 'Roman', role: 'Press & Content',
+        specialist: 'Press & Content AI',
         contentType: args.type,
         topic: args.topic,
         tone: args.tone || 'professional',
         length: args.length || 'medium',
-        note: 'Content creation routed to Roman. Full content generation available through the Palyan AI platform.',
-        pressRoom: 'http://www.einpresswire.com/newsroom/levelsofself/'
+        note: 'Content creation request received. Full content generation available through the Palyan AI platform.'
       };
     }
 
     case 'get_training': {
       return {
-        specialist: 'Nick', role: 'Trainer',
+        specialist: 'Training AI',
         topic: args.topic,
         format: args.format || 'workshop',
         audience: args.audience || 'general',
@@ -351,39 +386,30 @@ function handleToolCall(name, args) {
       };
     }
 
-    case 'get_family_info': {
+    case 'get_platform_info': {
       switch (args.topic) {
-        case 'team':
-          return { family: FAMILY };
         case 'capabilities':
           return {
             services: ['AI Consulting', 'Software Development', 'Personal Development Training', 'Real Estate Advisory (LA)', 'Legal Guidance', 'Multi-language Translation', 'Research & Enrichment', 'Content Creation', 'Email Outreach'],
-            naics: NAICS
-          };
-        case 'architecture':
-          return {
-            description: 'Multi-agent AI system with 12 specialized members, each with dedicated communication channels and toolsets',
-            infrastructure: 'DigitalOcean VPS, Caddy reverse proxy, PM2 process management, Vercel (game)',
-            agents: Object.values(FAMILY).length,
-            mcpEndpoint: 'https://api.100levelup.com/mcp-ops/',
-            gameEndpoint: 'https://api.100levelup.com/mcp/'
+            naics: NAICS,
+            specialists: Object.keys(SPECIALISTS).length
           };
         case 'certifications':
-          return CERTIFICATIONS;
+          return { certifications: CERTIFICATION_CATEGORIES };
         case 'naics':
           return { codes: NAICS };
         case 'contact':
           return {
             name: 'Arthur Palyan',
             email: 'ArtPalyan@LevelsOfSelf.com',
-            phone: '(818) 439-9770',
-            whatsapp: 'wa.me/18184399770',
             website: 'https://www.levelsofself.com',
             game: 'https://100levelup.com',
             booking: 'https://calendly.com/levelsofself/zoom'
           };
+        case 'languages':
+          return { supported: LANGUAGES };
         default:
-          return { error: 'Unknown topic', available: ['team', 'capabilities', 'architecture', 'certifications', 'naics', 'contact'] };
+          return { error: 'Unknown topic', available: ['capabilities', 'certifications', 'naics', 'contact', 'languages'] };
       }
     }
 
@@ -392,13 +418,13 @@ function handleToolCall(name, args) {
   }
 }
 
-// Handle resource reads
+// Handle resource reads (sanitized)
 function handleResourceRead(uri) {
   switch (uri) {
-    case 'palyan://family/overview':
-      return `Palyan AI Operations - Multi-Agent Business System\n\n12 specialized AI family members providing: Operations Management (Tamara), Real Estate (Harout), Legal (Aram), Press & Content (Roman), Translation (Spartak), Research (Kris), Training (Nick), Books (Harry), Content (Lou), Coaching (Lily), Email Outreach (Lady).\n\nFounded by Arthur Palyan. Based in Valencia, CA. CA Certified Small Business (Micro) #2050529.`;
+    case 'palyan://platform/overview':
+      return 'Palyan AI Operations - Multi-Agent Business Platform\n\n11 specialized AI agents providing: Operations Management, Real Estate (LA), Legal, Press & Content, Translation (6 languages), Research, Training, Publishing, Content, Coaching, Outreach.\n\nFounded by Arthur Palyan. California Certified Small Business.';
     case 'palyan://business/certifications':
-      return Object.entries(CERTIFICATIONS).map(([name, data]) => `${name}: ${JSON.stringify(data)}`).join('\n');
+      return CERTIFICATION_CATEGORIES.map(c => `${c.name}: ${c.status} (${c.type})`).join('\n');
     case 'palyan://real-estate/neighborhoods':
       return Object.entries(LA_NEIGHBORHOODS).map(([name, data]) => `${name}: ${data.medianPrice} | ${data.vibe} | Commute: ${data.commute}`).join('\n');
     case 'palyan://business/capabilities':
@@ -450,9 +476,16 @@ const server = http.createServer((req, res) => {
 
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
 
+  // API key validation (health check exempt)
+  if (!validateApiKey(req)) {
+    res.writeHead(401, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Unauthorized', message: 'Valid API key required. Pass as Bearer token in Authorization header.' }));
+    return;
+  }
+
   if (req.method === 'GET' && url.pathname === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', service: 'palyan-ai-ops-mcp', version: '1.0.0', protocol: MCP_VERSION, agents: 12 }));
+    res.end(JSON.stringify({ status: 'ok', service: 'palyan-ai-ops-mcp', version: '2.0.0', protocol: MCP_VERSION }));
     return;
   }
 
@@ -501,10 +534,10 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       name: 'Palyan AI Operations MCP Server',
-      version: '1.0.0',
+      version: '2.0.0',
       protocol: MCP_VERSION,
-      description: 'Multi-agent AI operations platform with 12 specialized agents: real estate, legal, translation, research, content, training, and more.',
-      agents: 12,
+      description: 'Multi-agent AI operations platform with specialized AI agents: real estate, legal, translation, research, content, training, and more.',
+      authentication: 'Bearer token required (Authorization header)',
       endpoints: { sse: '/sse', message: '/message', http: '/mcp', health: '/health' },
       tools: TOOLS.map(t => ({ name: t.name, description: t.description })),
       resources: RESOURCES.map(r => ({ uri: r.uri, name: r.name })),
@@ -518,7 +551,8 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`[MCP Ops] Palyan AI Operations running on port ${PORT}`);
-  console.log(`[MCP Ops] SSE: /sse | HTTP: /mcp | Health: /health`);
-  console.log(`[MCP Ops] Agents: ${Object.keys(FAMILY).length} | Protocol: ${MCP_VERSION}`);
+  console.log(`[MCP Ops v2] Palyan AI Operations running on port ${PORT}`);
+  console.log(`[MCP Ops v2] SSE: /sse | HTTP: /mcp | Health: /health`);
+  console.log(`[MCP Ops v2] API key required: ${API_KEYS.size > 0 ? 'YES (' + API_KEYS.size + ' keys)' : 'NO KEYS CONFIGURED - all requests will be rejected'}`);
+  console.log(`[MCP Ops v2] Protocol: ${MCP_VERSION}`);
 });
