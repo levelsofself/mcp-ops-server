@@ -11,7 +11,7 @@ const SERVER_INFO = { name: 'palyan-ai-ops', version: '2.0.0' };
 const API_KEYS = new Set();
 try {
   const keys = fs.readFileSync('/root/family-data/mcp-api-keys.json', 'utf8');
-  JSON.parse(keys).forEach(k => API_KEYS.add(k));
+  Object.keys(JSON.parse(keys).keys).forEach(k => API_KEYS.add(k));
 } catch(e) {
   console.log('[MCP Ops v2] WARNING: No API keys file found at /root/family-data/mcp-api-keys.json');
   console.log('[MCP Ops v2] Server will reject all requests until keys are configured.');
