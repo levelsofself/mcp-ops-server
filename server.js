@@ -551,7 +551,7 @@ const server = http.createServer((req, res) => {
   res.end(JSON.stringify({ error: 'Not found' }));
 });
 
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '127.0.0.1', () => {
   console.log(`[MCP Ops v2] Palyan Family AI System Operations running on port ${PORT}`);
   console.log(`[MCP Ops v2] SSE: /sse | HTTP: /mcp | Health: /health`);
   console.log(`[MCP Ops v2] API key required: ${API_KEYS.size > 0 ? 'YES (' + API_KEYS.size + ' keys)' : 'NO KEYS CONFIGURED - all requests will be rejected'}`);
