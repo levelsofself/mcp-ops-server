@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// Stdio wrapper for Palyan Family AI System Operations MCP Server
+// Stdio wrapper for Levels of Self Operations MCP Server
 // This runs as a proper MCP stdio transport for Claude Desktop
 // The HTTP server runs separately on the VPS
 
@@ -161,7 +161,7 @@ const TOOLS = [
   },
   {
     name: "get_family_info",
-    description: "Get information about the Palyan Family AI System family system - team members, capabilities, architecture, and how it works.",
+    description: "Get information about the Levels of Self system - team members, capabilities, architecture, and how it works.",
     schema: {
       type: "object",
       properties: {
@@ -174,7 +174,7 @@ const TOOLS = [
 
 // Resources
 const RESOURCES = [
-  { uri: "palyan://family/overview", name: "Family AI Overview", description: "Overview of the Palyan Family AI System family system", mimeType: "text/plain" },
+  { uri: "palyan://family/overview", name: "Family AI Overview", description: "Overview of the Levels of Self system", mimeType: "text/plain" },
   { uri: "palyan://business/certifications", name: "Business Certifications", description: "Active business certifications and registrations", mimeType: "text/plain" },
   { uri: "palyan://real-estate/neighborhoods", name: "LA Neighborhoods Guide", description: "Los Angeles neighborhood guide with market data", mimeType: "text/plain" },
   { uri: "palyan://business/capabilities", name: "Capability Statement", description: "Business capabilities, NAICS codes, and service areas", mimeType: "text/plain" }
@@ -223,7 +223,7 @@ function handleToolCall(name, args) {
         context: args.context || "business",
         textLength: (args.text || "").length,
         supportedLanguages: LANGUAGES,
-        note: "Full translation processing available through the Palyan Family AI System platform. This tool provides translation framework and language support information."
+        note: "Full translation processing available through the Levels of Self platform. This tool provides translation framework and language support information."
       };
     }
 
@@ -269,7 +269,7 @@ function handleToolCall(name, args) {
         topic: args.topic,
         tone: args.tone || "professional",
         length: args.length || "medium",
-        note: "Content creation routed to Roman. Full content generation available through the Palyan Family AI System platform.",
+        note: "Content creation routed to Roman. Full content generation available through the Levels of Self platform.",
         pressRoom: "http://www.einpresswire.com/newsroom/levelsofself/"
       };
     }
@@ -341,7 +341,7 @@ function handleToolCall(name, args) {
 function handleResourceRead(uri) {
   switch (uri) {
     case "palyan://family/overview":
-      return "Palyan Family AI System Operations - Multi-Agent Business System\n\n12 specialized AI family members providing: Operations Management (Tamara), Real Estate (Harout), Legal (Aram), Press & Content (Roman), Translation (Spartak), Research (Kris), Training (Nick), Books (Harry), Content (Lou), Coaching (Lily), Email Outreach (Lady).\n\nFounded by Arthur Palyan. Based in Valencia, CA. CA Certified Small Business (Micro) #2050529.";
+      return "Levels of Self Operations - Multi-Agent Business System\n\n12 specialized AI family members providing: Operations Management (Tamara), Real Estate (Harout), Legal (Aram), Press & Content (Roman), Translation (Spartak), Research (Kris), Training (Nick), Books (Harry), Content (Lou), Coaching (Lily), Email Outreach (Lady).\n\nFounded by Arthur Palyan. Based in Valencia, CA. CA Certified Small Business (Micro) #2050529.";
     case "palyan://business/certifications":
       return Object.entries(CERTIFICATIONS).map(([name, data]) => name + ": " + JSON.stringify(data)).join("\n");
     case "palyan://real-estate/neighborhoods":

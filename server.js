@@ -235,7 +235,7 @@ const TOOLS = [
       idempotentHint: true,
       openWorldHint: false
     },
-    description: 'Get information about the Palyan Family AI System platform - capabilities, service areas, and how to engage.',
+    description: 'Get information about the Levels of Self platform - capabilities, service areas, and how to engage.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -248,7 +248,7 @@ const TOOLS = [
 
 // Resources (sanitized - no cert IDs in read content)
 const RESOURCES = [
-  { uri: 'palyan://platform/overview', name: 'Platform Overview', description: 'Overview of the Palyan Family AI System platform and services', mimeType: 'text/plain' },
+  { uri: 'palyan://platform/overview', name: 'Platform Overview', description: 'Overview of the Levels of Self platform and services', mimeType: 'text/plain' },
   { uri: 'palyan://business/certifications', name: 'Business Certifications', description: 'Active business certification categories', mimeType: 'text/plain' },
   { uri: 'palyan://real-estate/neighborhoods', name: 'LA Neighborhoods Guide', description: 'Los Angeles neighborhood guide with market data', mimeType: 'text/plain' },
   { uri: 'palyan://business/capabilities', name: 'Capability Statement', description: 'Business capabilities, NAICS codes, and service areas', mimeType: 'text/plain' }
@@ -301,7 +301,7 @@ function handleToolCall(name, args) {
         context: args.context || 'business',
         textLength: args.text.length,
         supportedLanguages: LANGUAGES,
-        note: 'Full translation processing available through the Palyan Family AI System platform.'
+        note: 'Full translation processing available through the Levels of Self platform.'
       };
     }
 
@@ -361,7 +361,7 @@ function handleToolCall(name, args) {
         topic: args.topic,
         tone: args.tone || 'professional',
         length: args.length || 'medium',
-        note: 'Content creation request received. Full content generation available through the Palyan Family AI System platform.'
+        note: 'Content creation request received. Full content generation available through the Levels of Self platform.'
       };
     }
 
@@ -423,7 +423,7 @@ function handleToolCall(name, args) {
 function handleResourceRead(uri) {
   switch (uri) {
     case 'palyan://platform/overview':
-      return 'Palyan Family AI System Operations - Multi-Agent Business Platform\n\n11 specialized AI agents providing: Operations Management, Real Estate (LA), Legal, Press & Content, Translation (6 languages), Research, Training, Publishing, Content, Coaching, Outreach.\n\nFounded by Arthur Palyan. California Certified Small Business.';
+      return 'Levels of Self Operations - Multi-Agent Business Platform\n\n11 specialized AI agents providing: Operations Management, Real Estate (LA), Legal, Press & Content, Translation (6 languages), Research, Training, Publishing, Content, Coaching, Outreach.\n\nFounded by Arthur Palyan. California Certified Small Business.';
     case 'palyan://business/certifications':
       return CERTIFICATION_CATEGORIES.map(c => `${c.name}: ${c.status} (${c.type})`).join('\n');
     case 'palyan://real-estate/neighborhoods':
@@ -534,7 +534,7 @@ const server = http.createServer((req, res) => {
   if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/mcp')) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
-      name: 'Palyan Family AI System Operations MCP Server',
+      name: 'Levels of Self Operations MCP Server',
       version: '2.0.0',
       protocol: MCP_VERSION,
       description: 'Multi-agent AI operations platform with specialized AI agents: real estate, legal, translation, research, content, training, and more.',
@@ -552,7 +552,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, '127.0.0.1', () => {
-  console.log(`[MCP Ops v2] Palyan Family AI System Operations running on port ${PORT}`);
+  console.log(`[MCP Ops v2] Levels of Self Operations running on port ${PORT}`);
   console.log(`[MCP Ops v2] SSE: /sse | HTTP: /mcp | Health: /health`);
   console.log(`[MCP Ops v2] API key required: ${API_KEYS.size > 0 ? 'YES (' + API_KEYS.size + ' keys)' : 'NO KEYS CONFIGURED - all requests will be rejected'}`);
   console.log(`[MCP Ops v2] Protocol: ${MCP_VERSION}`);

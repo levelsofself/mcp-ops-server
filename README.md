@@ -1,10 +1,10 @@
-# Palyan Family AI System Operations - MCP Server
+# Levels of Self Operations - MCP Server
 
 An MCP (Model Context Protocol) server that gives AI assistants access to a multi-agent business operations platform with specialized AI services covering real estate, legal, translation, research, content creation, training, and more.
 
 ## What It Does
 
-This server connects AI assistants to the Palyan Family AI System platform - a team of specialized AI agents built by Arthur Palyan (founder of Levels of Self). Each tool is powered by a dedicated agent with domain expertise:
+This server connects AI assistants to the Levels of Self platform - a team of specialized AI agents built by Arthur Palyan (founder of Levels of Self). Each tool is powered by a dedicated agent with domain expertise:
 
 - **LA Real Estate AI** - Los Angeles real estate market insights and neighborhood analysis
 - **Legal AI** - Business legal guidance, compliance, and government contracting
@@ -101,7 +101,7 @@ Try these with any MCP-connected AI assistant:
 
 3. **"Translate this message to Armenian for a business context"** - Routes to the Translation AI for culturally adapted translation across 6 supported languages.
 
-4. **"Give me a business overview of the Palyan Family AI System operation"** - Returns business summary: service areas, certification categories, and specialist count.
+4. **"Give me a business overview of the Levels of Self operation"** - Returns business summary: service areas, certification categories, and specialist count.
 
 5. **"What training programs are available for emotional intelligence?"** - Returns available programs including Self-Awareness Foundations, Pattern Recognition Workshop, and booking links.
 
@@ -118,7 +118,7 @@ The server exposes MCP resources for direct data access:
 
 ## About
 
-**Palyan Family AI System Operations** is a multi-agent business platform built by Arthur Palyan, operating out of Valencia, CA. The system runs specialized AI agents that handle real estate advisory, legal guidance, translation, research, content creation, and more.
+**Levels of Self Operations** is a multi-agent business platform built by Arthur Palyan, operating out of Valencia, CA. The system runs specialized AI agents that handle real estate advisory, legal guidance, translation, research, content creation, and more.
 
 - Business: Levels of Self - Arthur Palyan
 - California Certified Small Business (Micro)
